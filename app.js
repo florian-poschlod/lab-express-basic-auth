@@ -13,6 +13,8 @@ const debug = require('debug')(`${app_name}:${path.basename(__filename).split('.
 
 const app = express();
 
+
+
 // require database configuration
 require('./configs/db.config');
 
@@ -21,6 +23,28 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// session configuration
+const session = require('express-session');
+
+// session store
+const MongoStore = require('connect-mongo')(session)
+
+// const mongoose = require('./db/index');
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 },
+    saveUninitialized: false,
+    //Forces the session to be saved back to the session store, 
+    // even if the session was never modified during the request.
+    resave: true,
+    store: new MongoStore({
+      mongooseConnection: mongoose.connection
+    })
+  })
+)
 
 // Express View engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -33,5 +57,8 @@ app.locals.title = 'Express - Generated with IronGenerator';
 
 const index = require('./routes/index.routes');
 app.use('/', index);
+
+const auth = require('./routes/auth');
+app.use('/', auth)
 
 module.exports = app;
